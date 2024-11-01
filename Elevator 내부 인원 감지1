@@ -1,0 +1,43 @@
+import cv2
+from ultralytics import YOLO
+import time
+
+# YOLO 모델 로드
+model = YOLO('yolov8n.pt')  # 모델 파일 경로를 맞게 설정
+
+# 카메라로부터 비디오 스트림 가져오기
+cap = cv2.VideoCapture(0)
+
+# 카메라가 제대로 열렸는지 확인
+if not cap.isOpened():
+    print("Cannot open camera")
+    exit()
+
+output_file_path = 'people_count1.txt'  # 저장할 파일 경로
+
+while True:
+    ret, frame = cap.read()  # 프레임 읽기
+    if not ret:
+        print("Cannot read frame")
+        break
+
+    # YOLO로 사람 감지 수행
+    results = model(frame)
+
+    # 사람만 카운트
+    people_count = sum(1 for result in results[0].boxes if result.cls == 0)
+
+    # 최신 사람 수로 파일 덮어쓰기
+    with open(output_file_path, 'w') as output_file:
+        output_file.write(f"{time.time()}: {people_count}\n")  # 타임스탬프와 함께 저장
+
+    # 감지된 사람 수를 화면에 표시
+    cv2.putText(frame, f"People Count: {people_count}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+    cv2.imshow("Elevator Waiting People Count", frame)
+
+    # 'q' 키를 누르면 종료
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
